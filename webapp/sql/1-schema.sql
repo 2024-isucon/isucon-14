@@ -21,6 +21,7 @@ CREATE TABLE chair_models
 )
   COMMENT = '椅子モデルテーブル';
 
+DROP TABLE IF EXISTS owners;
 CREATE TABLE owners
 (
   id                   VARCHAR(26)  NOT NULL COMMENT 'オーナーID',
@@ -36,7 +37,7 @@ CREATE TABLE owners
 )
   COMMENT = '椅子のオーナー情報テーブル';
 
-
+DROP TABLE IF EXISTS chairs;
 CREATE TABLE chairs
 (
   id           VARCHAR(26)  NOT NULL COMMENT '椅子ID',
@@ -53,6 +54,7 @@ CREATE TABLE chairs
 )
   COMMENT = '椅子情報テーブル';
 
+DROP TABLE IF EXISTS chair_locations;
 CREATE TABLE chair_locations
 (
   id         VARCHAR(26) NOT NULL,
@@ -65,6 +67,7 @@ CREATE TABLE chair_locations
 )
   COMMENT = '椅子の現在位置情報テーブル';
 
+DROP TABLE IF EXISTS users;
 CREATE TABLE users
 (
   id              VARCHAR(26)  NOT NULL COMMENT 'ユーザーID',
