@@ -11,7 +11,9 @@ if test -f /home/isucon/env.sh; then
 	. /home/isucon/env.sh
 fi
 
-ISUCON_DB_HOST=${ISUCON_DB_HOST:-127.0.0.1}
+# ISUCON_DB_HOST=${ISUCON_DB_HOST:-127.0.0.1}
+# docker compose で動かす用
+ISUCON_DB_HOST=${ISUCON_DB_HOST:db}
 ISUCON_DB_PORT=${ISUCON_DB_PORT:-3306}
 ISUCON_DB_USER=${ISUCON_DB_USER:-isucon}
 ISUCON_DB_PASSWORD=${ISUCON_DB_PASSWORD:-isucon}
