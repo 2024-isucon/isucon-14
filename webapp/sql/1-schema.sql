@@ -49,8 +49,8 @@ CREATE TABLE chairs
   created_at   DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '登録日時',
   updated_at   DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新日時',
   PRIMARY KEY (id),
-  FOREIGN KEY (owner_id) REFERENCES owners(id),
-  FOREIGN KEY (model) REFERENCES chair_models(name)
+  FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE CASCADE,
+  FOREIGN KEY (model) REFERENCES chair_models(name) ON DELETE CASCADE
 )
   COMMENT = '椅子情報テーブル';
 
@@ -63,7 +63,7 @@ CREATE TABLE chair_locations
   longitude  INTEGER     NOT NULL COMMENT '緯度',
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '登録日時',
   PRIMARY KEY (id),
-  FOREIGN KEY (chair_id) REFERENCES chairs(id)
+  FOREIGN KEY (chair_id) REFERENCES chairs(id) ON DELETE CASCADE
 )
   COMMENT = '椅子の現在位置情報テーブル';
 
@@ -111,8 +111,7 @@ CREATE TABLE rides
   created_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '要求日時',
   updated_at            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '状態更新日時',
   PRIMARY KEY (id),
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (chair_id) REFERENCES chairs(id)
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 )
   COMMENT = 'ライド情報テーブル';
 
@@ -126,7 +125,7 @@ CREATE TABLE ride_statuses
   app_sent_at     DATETIME(6)                                                                NULL COMMENT 'ユーザーへの状態通知日時',
   chair_sent_at   DATETIME(6)                                                                NULL COMMENT '椅子への状態通知日時',
   PRIMARY KEY (id),
-  FOREIGN KEY (ride_id) REFERENCES rides(id)
+  FOREIGN KEY (ride_id) REFERENCES rides(id) ON DELETE CASCADE
 )
   COMMENT = 'ライドステータスの変更履歴テーブル';
 
@@ -139,7 +138,7 @@ CREATE TABLE coupons
   created_at DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '付与日時',
   used_by    VARCHAR(26)  NULL COMMENT 'クーポンが適用されたライドのID',
   PRIMARY KEY (user_id, code),
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (used_by) REFERENCES rides(id)
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (used_by) REFERENCES rides(id) ON DELETE SET NULL
 )
   COMMENT 'クーポンテーブル';
