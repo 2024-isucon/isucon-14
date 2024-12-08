@@ -20,10 +20,6 @@ sudo cp "$SOURCE_PATH" "$DEST_PATH"
 echo "Ensuring appropriate permissions for $DEST_PATH..."
 sudo chmod 644 "$DEST_PATH"
 
-# MySQLの設定ファイルのテスト
-echo "Testing MySQL configuration..."
-sudo mysql --help > /dev/null 2>&1
-
 # MySQLの再起動
 echo "Restarting MySQL..."
 sudo systemctl restart mysql
