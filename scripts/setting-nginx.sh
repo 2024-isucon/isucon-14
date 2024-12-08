@@ -3,7 +3,7 @@
 set -euxo pipefail  # エラーハンドリングを強化
 
 # 定数の定義
-SOURCE_PATH="../conf/nginx/nginx.conf"
+SOURCE_PATH="./conf/nginx/nginx.conf"
 DEST_PATH="/etc/nginx/nginx.conf"
 
 # コピー前に存在確認
