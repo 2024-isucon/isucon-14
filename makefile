@@ -11,7 +11,10 @@ build: ## Run the deployment script
 	branch=${branch} ./scripts/deploy.sh
 
 setting-nginx: ## Setting up nginx
-	./scripts/setting-nginx.sh
+    sudo bash -c "source ./scripts/setting-nginx.sh"
+
+setting-mysql: ## Setting up mysql
+    sudo bash -c "source ./scripts/setting-mysql.sh"
 
 .PHONY: restart-go
 restart-go: ## go server を build/リスタートさせる
