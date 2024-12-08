@@ -6,4 +6,7 @@ help: ## Check available make commands
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 build: ## Run the deployment script
-	./scripts/deploy.sh
+	branch=${branch} ./scripts/deploy.sh
+
+setting-nginx: ## Setting up nginx
+	./scripts/setting-nginx.sh
