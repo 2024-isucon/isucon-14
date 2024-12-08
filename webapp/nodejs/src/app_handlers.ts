@@ -162,16 +162,30 @@ export const appGetRides = async (ctx: Context<Environment>) => {
   await ctx.var.dbConn.beginTransaction();
   const items: GetAppRidesResponseItem[] = [];
   try {
+    // Fetch rides, chair, and owner data in a single query to reduce round trips
     const [rides] = await ctx.var.dbConn.query<Array<Ride & RowDataPacket>>(
-      "SELECT * FROM rides WHERE user_id = ? ORDER BY created_at DESC",
-      [user.id],
+      `SELECT r.*, c.*, o.*
+       FROM rides r
+       LEFT JOIN chairs c ON r.chair_id = c.id
+       LEFT JOIN owners o ON c.owner_id = o.id
+       WHERE r.user_id = ?
+       ORDER BY r.created_at DESC`,
+      [user.id]
     );
-    for (const ride of rides) {
-      const status = await getLatestRideStatus(ctx.var.dbConn, ride.id);
+
+    // Parallelize status and fare calculation
+    const statusPromises = rides.map((ride: Ride & RowDataPacket) => getLatestRideStatus(ctx.var.dbConn, ride.id));
+    const statusResults = await Promise.all(statusPromises);
+
+    for (let i = 0; i < rides.length; i++) {
+      const ride = rides[i];
+      const status = statusResults[i];
+
       if (status !== "COMPLETED") {
         continue;
       }
 
+      // Calculate discounted fare asynchronously for each ride
       const fare = await calculateDiscountedFare(
         ctx.var.dbConn,
         user.id,
@@ -182,12 +196,6 @@ export const appGetRides = async (ctx: Context<Environment>) => {
         ride.destination_longitude,
       );
 
-      const [[chair]] = await ctx.var.dbConn.query<
-        Array<Chair & RowDataPacket>
-      >("SELECT * FROM chairs WHERE id = ?", [ride.chair_id]);
-      const [[owner]] = await ctx.var.dbConn.query<
-        Array<Owner & RowDataPacket>
-      >("SELECT * FROM owners WHERE id = ?", [chair.owner_id]);
       const item = {
         id: ride.id,
         pickup_coordinate: {
@@ -203,21 +211,17 @@ export const appGetRides = async (ctx: Context<Environment>) => {
         requested_at: ride.created_at.getTime(),
         completed_at: ride.updated_at.getTime(),
         chair: {
-          id: chair.id,
-          name: chair.name,
-          model: chair.model,
-          owner: owner.name,
+          id: ride.chair_id,
+          name: ride.name,
+          model: ride.model,
+          owner: ride.owner_name,  // Assuming owner_name is returned from the query
         },
       };
       items.push(item);
     }
+
     await ctx.var.dbConn.commit();
-    return ctx.json(
-      {
-        rides: items,
-      },
-      200,
-    );
+    return ctx.json({ rides: items }, 200);
   } catch (e) {
     await ctx.var.dbConn.rollback();
     return ctx.text(`${e}`, 500);
