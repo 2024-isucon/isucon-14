@@ -327,7 +327,8 @@ func appPostRides(w http.ResponseWriter, r *http.Request) {
         WHERE row_num = 1
     ) rs ON r.id = rs.ride_id
     WHERE r.user_id = ?
-      AND rs.status != 'COMPLETED';
+      AND rs.status != 'COMPLETED'
+	  LIMIT 1;
 `
 
 	if err := tx.GetContext(ctx, &continuingRideCount, query, user.ID); err != nil {
