@@ -30,10 +30,11 @@ mv-logs:	## ベンチマーク実行後のログを移動する
 	# sudo test -f $(NGINX_LOG) && \
 	# 	sudo mv -f $(NGINX_LOG) ~/logs/$(when)/ || echo ""
 	@sudo test -f $(DB_SLOW_LOG) && \
-		sudo mv -f $(DB_SLOW_LOG) ~/logs/$(when)/ || echo ""
-	@sudo test -f $(DB_SLOW_LOG) && \
 		sudo pt-query-digest $(DB_SLOW_LOG) > ~/logs/$(when)/pt-query-digest.txt || true
+	@sudo test -f $(DB_SLOW_LOG) && \
+		sudo mv -f $(DB_SLOW_LOG) ~/logs/$(when)/ || echo ""
 	@echo "~/logs/$(when)"
+	MYSQL_PWD='isucon' mysql -u isucon -e "SET GLOBAL slow_query_log_file = '$(DB_SLOW_LOG)'";
 
 .PHONY: init
 init:
@@ -44,3 +45,7 @@ init:
 .PHONY: stop-slow-query
 stop-slow-query:
 	MYSQL_PWD='isucon' mysql -u isucon -e "SET GLOBAL slow_query_log = 0;" isuride
+
+.PHOHY: db
+db:	## mysql に root user として入る
+	sudo mysql isuride
