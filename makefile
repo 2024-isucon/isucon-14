@@ -47,3 +47,7 @@ init:
 .PHONY: stop-slow-query
 stop-slow-query:
 	MYSQL_PWD='isucon' mysql -u isucon -e "SET GLOBAL slow_query_log = 0;" isuride
+
+.PHOHY: db
+db:	## mysql に root user として入る
+	sudo mysql isuride
