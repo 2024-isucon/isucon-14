@@ -290,10 +290,15 @@ func isContinuingRide(
 	query := `
 SELECT COUNT(*) AS continuing_ride_count
 FROM rides r
-INNER JOIN ride_statuses rs ON r.id = rs.ride_id
-    WHERE r.user_id = ?
-      AND rs.status != 'COMPLETED'
-	  LIMIT 1;
+JOIN (
+    SELECT ride_id, MAX(created_at) AS latest_created_at
+    FROM ride_statuses
+    GROUP BY ride_id
+) latest ON r.id = latest.ride_id
+JOIN ride_statuses rs ON r.id = rs.ride_id AND rs.created_at = latest.latest_created_at
+WHERE r.user_id = ?
+  AND rs.status != 'COMPLETED'
+LIMIT 1;
 `
 
 	if err := tx.GetContext(ctx, &continuingRideCount, query, userID); err != nil {
@@ -310,7 +315,12 @@ func isContinuingRideByChairID(
 	query := `
 SELECT COUNT(*) AS continuing_ride_count
 FROM rides r
-INNER JOIN ride_statuses rs ON r.id = rs.ride_id
+JOIN (
+    SELECT ride_id, MAX(created_at) AS latest_created_at
+    FROM ride_statuses
+    GROUP BY ride_id
+) latest ON r.id = latest.ride_id
+JOIN ride_statuses rs ON r.id = rs.ride_id AND rs.created_at = latest.latest_created_at
 WHERE r.chair_id = ?
   AND rs.status != 'COMPLETED'
 LIMIT 1;
