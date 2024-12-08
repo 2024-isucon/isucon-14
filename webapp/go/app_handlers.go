@@ -313,22 +313,26 @@ func appPostRides(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	rides := []Ride{}
-	if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE user_id = ?`, user.ID); err != nil {
+	var continuingRideCount int
+	query := `
+    SELECT COUNT(*) AS continuing_ride_count
+    FROM rides r
+    JOIN (
+        SELECT ride_id, status
+        FROM (
+            SELECT ride_id, status,
+                   ROW_NUMBER() OVER (PARTITION BY ride_id ORDER BY created_at DESC) AS row_num
+            FROM ride_statuses
+        ) latest_status
+        WHERE row_num = 1
+    ) rs ON r.id = rs.ride_id
+    WHERE r.user_id = ?
+      AND rs.status != 'COMPLETED';
+`
+
+	if err := tx.GetContext(ctx, &continuingRideCount, query, user.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
-	}
-
-	continuingRideCount := 0
-	for _, ride := range rides {
-		status, err := getLatestRideStatus(ctx, tx, ride.ID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
-		if status != "COMPLETED" {
-			continuingRideCount++
-		}
 	}
 
 	if continuingRideCount > 0 {
