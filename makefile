@@ -33,9 +33,9 @@ mv-logs:	## ベンチマーク実行後のログを移動する
 	# sudo test -f $(NGINX_LOG) && \
 	# 	sudo mv -f $(NGINX_LOG) ~/logs/$(when)/ || echo ""
 	@sudo test -f $(DB_SLOW_LOG) && \
-		sudo mv -f $(DB_SLOW_LOG) ~/logs/$(when)/ || echo ""
-	@sudo test -f $(DB_SLOW_LOG) && \
 		sudo pt-query-digest $(DB_SLOW_LOG) > ~/logs/$(when)/pt-query-digest.txt || true
+	@sudo test -f $(DB_SLOW_LOG) && \
+		sudo mv -f $(DB_SLOW_LOG) ~/logs/$(when)/ || echo ""
 	@echo "~/logs/$(when)"
 
 .PHONY: init
