@@ -283,6 +283,62 @@ type executableGet interface {
 	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 }
 
+func isContinuingRide(
+	ctx context.Context, tx executableGet, userID string,
+) (bool, error) {
+	var continuingRideCount int
+	query := `
+    SELECT COUNT(*) AS continuing_ride_count
+    FROM rides r
+    JOIN (
+        SELECT ride_id, status
+        FROM (
+            SELECT ride_id, status,
+                   ROW_NUMBER() OVER (PARTITION BY ride_id ORDER BY created_at DESC) AS row_num
+            FROM ride_statuses
+        ) latest_status
+        WHERE row_num = 1
+    ) rs ON r.id = rs.ride_id
+    WHERE r.user_id = ?
+      AND rs.status != 'COMPLETED'
+	  LIMIT 1;
+`
+
+	if err := tx.GetContext(ctx, &continuingRideCount, query, userID); err != nil {
+		return false, err
+	}
+
+	return continuingRideCount > 0, nil
+}
+
+func isContinuingRideByChairID(
+	ctx context.Context, tx executableGet, chairID string,
+) (bool, error) {
+	var continuingRideCount int
+	query := `
+    SELECT COUNT(*) AS continuing_ride_count
+    FROM rides r
+    JOIN (
+        SELECT ride_id, status
+        FROM (
+            SELECT ride_id, status,
+                   ROW_NUMBER() OVER (PARTITION BY ride_id ORDER BY created_at DESC) AS row_num
+            FROM ride_statuses
+        ) latest_status
+        WHERE row_num = 1
+    ) rs ON r.id = rs.ride_id
+    WHERE r.chair_id = ?
+      AND rs.status != 'COMPLETED'
+	  LIMIT 1;
+`
+
+	if err := tx.GetContext(ctx, &continuingRideCount, query, chairID); err != nil {
+		return false, err
+	}
+
+	return continuingRideCount > 0, nil
+}
+
 func getLatestRideStatus(ctx context.Context, tx executableGet, rideID string) (string, error) {
 	status := ""
 	if err := tx.GetContext(ctx, &status, `SELECT status FROM ride_statuses WHERE ride_id = ? ORDER BY created_at DESC LIMIT 1`, rideID); err != nil {
@@ -313,30 +369,13 @@ func appPostRides(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	var continuingRideCount int
-	query := `
-    SELECT COUNT(*) AS continuing_ride_count
-    FROM rides r
-    JOIN (
-        SELECT ride_id, status
-        FROM (
-            SELECT ride_id, status,
-                   ROW_NUMBER() OVER (PARTITION BY ride_id ORDER BY created_at DESC) AS row_num
-            FROM ride_statuses
-        ) latest_status
-        WHERE row_num = 1
-    ) rs ON r.id = rs.ride_id
-    WHERE r.user_id = ?
-      AND rs.status != 'COMPLETED'
-	  LIMIT 1;
-`
-
-	if err := tx.GetContext(ctx, &continuingRideCount, query, user.ID); err != nil {
+	isContinuingRide, err := isContinuingRide(ctx, tx, user.ID)
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if continuingRideCount > 0 {
+	if isContinuingRide {
 		writeError(w, http.StatusConflict, errors.New("ride already exists"))
 		return
 	}
@@ -876,11 +915,11 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	chairs := []Chair{}
+	activeChairs := []Chair{}
 	err = tx.SelectContext(
 		ctx,
-		&chairs,
-		`SELECT * FROM chairs`,
+		&activeChairs,
+		`SELECT * FROM chairs WHERE is_active = 1`,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -888,31 +927,18 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nearbyChairs := []appGetNearbyChairsResponseChair{}
-	for _, chair := range chairs {
+	for _, chair := range activeChairs {
 		if !chair.IsActive {
 			continue
 		}
 
-		rides := []*Ride{}
-		if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE chair_id = ? ORDER BY created_at DESC`, chair.ID); err != nil {
+		isContinuingRide, err := isContinuingRideByChairID(ctx, tx, chair.ID)
+		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		skip := false
-		for _, ride := range rides {
-			// 過去にライドが存在し、かつ、それが完了していない場合はスキップ
-			status, err := getLatestRideStatus(ctx, tx, ride.ID)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, err)
-				return
-			}
-			if status != "COMPLETED" {
-				skip = true
-				break
-			}
-		}
-		if skip {
+		if isContinuingRide {
 			continue
 		}
 
