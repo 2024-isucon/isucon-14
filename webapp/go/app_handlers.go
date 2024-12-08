@@ -288,17 +288,9 @@ func isContinuingRide(
 ) (bool, error) {
 	var continuingRideCount int
 	query := `
-    SELECT COUNT(*) AS continuing_ride_count
-    FROM rides r
-    JOIN (
-        SELECT ride_id, status
-        FROM (
-            SELECT ride_id, status,
-                   ROW_NUMBER() OVER (PARTITION BY ride_id ORDER BY created_at DESC) AS row_num
-            FROM ride_statuses
-        ) latest_status
-        WHERE row_num = 1
-    ) rs ON r.id = rs.ride_id
+SELECT COUNT(*) AS continuing_ride_count
+FROM rides r
+INNER JOIN ride_statuses rs ON r.id = rs.ride_id
     WHERE r.user_id = ?
       AND rs.status != 'COMPLETED'
 	  LIMIT 1;
@@ -316,20 +308,13 @@ func isContinuingRideByChairID(
 ) (bool, error) {
 	var continuingRideCount int
 	query := `
-    SELECT COUNT(*) AS continuing_ride_count
-    FROM rides r
-    JOIN (
-        SELECT ride_id, status
-        FROM (
-            SELECT ride_id, status,
-                   ROW_NUMBER() OVER (PARTITION BY ride_id ORDER BY created_at DESC) AS row_num
-            FROM ride_statuses
-        ) latest_status
-        WHERE row_num = 1
-    ) rs ON r.id = rs.ride_id
-    WHERE r.chair_id = ?
-      AND rs.status != 'COMPLETED'
-	  LIMIT 1;
+SELECT COUNT(*) AS continuing_ride_count
+FROM rides r
+INNER JOIN ride_statuses rs ON r.id = rs.ride_id
+WHERE r.chair_id = ?
+  AND rs.status != 'COMPLETED'
+LIMIT 1;
+
 `
 
 	if err := tx.GetContext(ctx, &continuingRideCount, query, chairID); err != nil {
