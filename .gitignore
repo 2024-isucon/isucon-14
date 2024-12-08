@@ -2,5 +2,5 @@
 !.gitignore
 !.gitconfig
 
-go
+^/go
 local
