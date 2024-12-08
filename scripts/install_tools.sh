@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # インストールしたいツールのリスト
-tools=("make" "git")
+tools=("make" "git" "percona-toolkit")
 
 # 必要なパッケージリストを更新
 echo "パッケージリストを更新しています..."
