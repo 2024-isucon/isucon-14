@@ -12,3 +12,5 @@ CREATE INDEX idx_ride_statuses_ride_id_status ON ride_statuses (ride_id, status)
 
 -- 5. chair_locations テーブルに chair_id にインデックスを追加 (位置情報のクエリに有用)
 CREATE INDEX idx_chair_locations_chair_id ON chair_locations (chair_id);
+
+CREATE INDEX idx_chair_id_updated_at ON rides(chair_id, updated_at);

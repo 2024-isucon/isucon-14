@@ -60,7 +60,7 @@ func requestPaymentGatewayPostPayment(ctx context.Context, paymentGatewayURL str
 				defer res.Body.Close()
 
 				// GET /payments は障害と関係なく200が返るので、200以外は回復不能なエラーとする
-				if getRes.StatusCode != http.StatusOK {
+				if getRes.StatusCode >= 400 && getRes.StatusCode <= 599 {
 					return fmt.Errorf("[GET /payments] unexpected status code (%d)", getRes.StatusCode)
 				}
 				var payments []paymentGatewayGetPaymentsResponseOne
